@@ -30,17 +30,6 @@ end
 
 vim.keymap.set('n', '<F9>', cycle_theme, { desc = '切换主题（深/浅）' })
 
--- ========== LSP 通用回调 ==========
-local on_attach = function(client, bufnr)
-  local opts = { buffer = bufnr, remap = false }
-  vim.keymap.set('n', 'gd', vim.lsp.buf.definition, opts)
-  vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
-  vim.keymap.set('n', '<leader>rn', vim.lsp.buf.rename, opts)
-  vim.keymap.set('n', '<leader>ca', vim.lsp.buf.code_action, opts)
-  vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)
-  vim.keymap.set('n', '<leader>f', function() vim.lsp.buf.format() end, opts)
-end
-
 -- ========== 插件列表 ==========
 return {
   -- ===== 主题 =====
@@ -69,7 +58,6 @@ return {
     'nvim-tree/nvim-tree.lua',
     dependencies = { 'nvim-tree/nvim-web-devicons' },
     config = function()
-      -- 文件树专属的 on_attach 回调
       local function nvim_tree_on_attach(bufnr)
         local api = require('nvim-tree.api')
 
@@ -83,10 +71,8 @@ return {
           }
         end
 
-        -- 先加载默认键位（保留其他所有默认映射）
         api.config.mappings.default_on_attach(bufnr)
 
-        -- 覆盖关键键位
         vim.keymap.set('n', '<CR>', api.node.open.edit, opts('打开文件/目录'))
         vim.keymap.set('n', '<C-x>', api.tree.close, opts('关闭文件树'))
         vim.keymap.set('n', '<C-v>', api.node.open.vertical, opts('垂直分割打开'))
@@ -96,10 +82,9 @@ return {
       require('nvim-tree').setup({
         view = { width = 30 },
         filters = { dotfiles = true },
-        on_attach = nvim_tree_on_attach,   -- 新版本唯一的自定义入口
+        on_attach = nvim_tree_on_attach,
       })
 
-      -- F3 打开/关闭文件树
       vim.keymap.set('n', '<F3>', ':NvimTreeToggle<CR>', { silent = true, desc = 'Toggle file tree' })
     end,
   },
@@ -134,88 +119,59 @@ return {
     end,
   },
 
-  -- ===== 自动补全 + LSP =====
+  -- ===== 补全引擎 coc.nvim（替代 blink.cmp） =====
   {
-    'saghen/blink.cmp',
-    version = '*',
-    build = 'cargo build --release',
-    dependencies = {
-      'L3MON4D3/LuaSnip',
-      'rafamadriz/friendly-snippets',
-    },
-    opts = {
-      completion = {
-        accept = {
-          auto_brackets = { enabled = false },
-        },
-      },
-      sources = {
-        default = { 'lsp', 'path', 'snippets', 'buffer' },
-      },
-      keymap = {
-        preset = 'default',
-        ['<C-space>'] = { 'show', 'fallback' },
-        ['<CR>']      = { 'accept', 'fallback' },
-        ['<Tab>']     = { 'accept', 'fallback' },
-        ['<S-Tab>']   = { 'snippet_backward', 'fallback' },
-      },
-      fuzzy = {
-        implementation = 'lua',
-      },
-    },
-    config = function(_, opts)
-      require('blink.cmp').setup(opts)
+    'neoclide/coc.nvim',
+    branch = 'release',
+    lazy = false,
+    config = function()
+      -- 自动安装常用扩展
+      vim.g.coc_global_extensions = {
+        'coc-pyright',
+        'coc-clangd',
+        'coc-rust-analyzer',
+        'coc-snippets',
+        'coc-json',
+      }
 
-      local capabilities = require('blink.cmp').get_lsp_capabilities()
+      local opts = { noremap = true, silent = true, nowait = true }
 
-      vim.lsp.config('pyright', {
-        cmd = { 'pyright-langserver', '--stdio' },
-        filetypes = { 'python' },
-        root_markers = { 'pyproject.toml', 'setup.py', 'requirements.txt', '.git' },
-        capabilities = capabilities,
-        on_attach = on_attach,
-      })
+      -- Tab：补全菜单可见时接受当前项；否则插入 Tab
+      vim.keymap.set('i', '<Tab>', function()
+        if vim.fn['coc#pum#visible']() == 1 then
+          return vim.fn['coc#pum#confirm']()
+        end
+        return '\t'
+      end, { expr = true, silent = true, noremap = true, replace_keycodes = true })
 
-      vim.lsp.config('clangd', {
-        cmd = { 'clangd' },
-        filetypes = { 'c', 'cpp', 'objc', 'objcpp' },
-        root_markers = { 'compile_commands.json', 'compile_flags.txt', '.git' },
-        capabilities = capabilities,
-        on_attach = function(client, bufnr)
-          on_attach(client, bufnr)
-          vim.keymap.set('n', '<leader>ch', '<cmd>ClangdSwitchSourceHeader<CR>', { buffer = bufnr })
-        end,
-      })
+      -- S-Tab：补全菜单可见时上一个候选；否则不做任何事
+      vim.keymap.set('i', '<S-Tab>', function()
+        if vim.fn['coc#pum#visible']() == 1 then
+          return vim.fn['coc#pum#prev'](1)
+        end
+        return ''
+      end, { expr = true, silent = true, noremap = true, replace_keycodes = true })
 
-      -- === Rust 语言服务器配置 ===
-      vim.lsp.config('rust_analyzer', {
-        cmd = { 'rust-analyzer' },
-        filetypes = { 'rust' },
-        root_markers = { 'Cargo.toml', '.git' },
-        capabilities = capabilities,
-        on_attach = on_attach,
-        settings = {
-          ['rust-analyzer'] = {
-            cargo = {
-              loadOutDirsFromCheck = true,
-            },
-            procMacro = {
-              enable = true,
-            },
-            diagnostics = {
-              disabled = { 'unresolved-proc-macro' },
-            },
-          },
-        },
-      })
+      -- Ctrl+Space：手动触发补全
+      vim.keymap.set('i', '<C-space>', function()
+        return vim.fn['coc#refresh']()
+      end, { expr = true, silent = true, noremap = true, replace_keycodes = true })
 
-      vim.lsp.enable('pyright')
-      vim.lsp.enable('clangd')
-      vim.lsp.enable('rust_analyzer')  -- 启用 rust-analyzer
+      -- 不映射 <CR>：回车保持普通换行
+
+      -- 代码导航与操作
+      vim.keymap.set('n', 'gd', '<Plug>(coc-definition)', opts)
+      vim.keymap.set('n', 'gy', '<Plug>(coc-type-definition)', opts)
+      vim.keymap.set('n', 'gi', '<Plug>(coc-implementation)', opts)
+      vim.keymap.set('n', 'gr', '<Plug>(coc-references)', opts)
+      vim.keymap.set('n', 'K', ':call CocActionAsync("doHover")<CR>', opts)
+      vim.keymap.set('n', '<leader>rn', '<Plug>(coc-rename)', opts)
+      vim.keymap.set('n', '<leader>ca', '<Plug>(coc-codeaction-cursor)', opts)
+      vim.keymap.set('n', '<leader>f', '<Plug>(coc-format)', opts)
     end,
   },
 
-  -- ===== 代码大纲 =====
+  -- ===== 代码大纲（后端改用 coc） =====
   {
     'stevearc/aerial.nvim',
     dependencies = { 'nvim-tree/nvim-web-devicons' },
@@ -224,7 +180,7 @@ return {
         max_width = { 40, 0.3 },
         min_width = 25,
       },
-      source = 'lsp',
+      source = 'coc',
     },
     config = function(_, opts)
       require('aerial').setup(opts)
@@ -240,7 +196,6 @@ return {
     keys = {
       { '<leader>xx', '<cmd>Trouble diagnostics toggle<CR>', desc = 'Diagnostics (Trouble)' },
       { '<leader>xX', '<cmd>Trouble diagnostics toggle filter.buf=0<CR>', desc = 'Buffer Diagnostics (Trouble)' },
-      -- F12 打开/关闭整个项目的错误/诊断列表
       { '<F12>', '<cmd>Trouble diagnostics toggle<CR>', desc = 'Toggle diagnostics list' },
     },
   },
@@ -310,7 +265,7 @@ return {
         start_in_insert = true,
         insert_mappings = true,
         persist_size = true,
-        direction = 'tab',       -- 终端以标签页方式打开
+        direction = 'tab',
         close_on_exit = true,
         shell = vim.o.shell,
         auto_scroll = true,
@@ -327,14 +282,12 @@ return {
       vim.keymap.set('n', '<leader>tv', '<cmd>ToggleTerm direction=vertical<CR>', { desc = 'Vertical terminal' })
       vim.keymap.set('t', '<Esc>', [[<C-\><C-n>]], { desc = 'Exit terminal insert mode' })
 
-      -- 任何终端缓冲区打开时，自动进入插入模式
       vim.api.nvim_create_autocmd('TermOpen', {
         callback = function()
           vim.cmd('startinsert')
         end,
       })
 
-      -- F10：切到已有终端标签；没有则在新标签页打开终端，且进入插入模式
       vim.keymap.set('n', '<F10>', function()
         for _, tab in ipairs(vim.api.nvim_list_tabpages()) do
           for _, win in ipairs(vim.api.nvim_tabpage_list_wins(tab)) do
@@ -347,7 +300,6 @@ return {
             end
           end
         end
-        -- 没有找到终端，则新建（direction = 'tab' 会在新标签页打开）
         vim.cmd('ToggleTerm')
         vim.cmd('startinsert')
       end, { desc = 'Go to terminal tab, or open one' })

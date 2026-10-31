@@ -73,9 +73,8 @@ set showcmd              " select模式下显示选中的行数
 set laststatus=2         " 总是显示状态栏
 set number               " 开启行号显示
 set whichwrap+=<,>,h,l   " 设置光标键跨行
-set ttimeoutlen=0        " 设置<ESC>键响应时间
+set ttimeoutlen=0
 set virtualedit=block,onemore   " 允许光标出现在最后一个字符的后面
-autocmd VimResized * call s:EchoDocEnable()
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " 代码缩进和排版
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -131,8 +130,13 @@ augroup END
 noremap  <C-a> <Esc>gg0vG$
 inoremap <C-a> <Esc>gg0vG$
 
-noremap <C-s> :w<CR>
-inoremap <C-s> <Esc> :w<CR>
+" 保存文件：插入模式下保存后回到普通模式；普通/可视模式只保存
+" 注意：LazyVim 也会映射 <C-s>，因为 kemil.vim 在 VeryLazy 之后再次 source，
+" 所以这里的映射会覆盖 LazyVim 的版本（详见 init.lua）
+nnoremap <C-s> <Cmd>write<CR>
+inoremap <C-s> <Esc><Cmd>write<CR>
+xnoremap <C-s> <Cmd>write<CR>
+snoremap <C-s> <Cmd>write<CR>
 
 nnoremap <C-z> u
 vnoremap <C-z> <Esc>uv
@@ -208,7 +212,9 @@ inoremap <Leader>Down :resize -5<CR>
 nnoremap <ESC>u :nohlsearch<CR>
 inoremap <ESC>u <ESC>:nohlsearch<CR>a
 
-set foldmethod=syntax
+" 不要用 syntax：C/C++/Qt 文件用语法折叠会在打开文件和编辑时大量消耗 CPU。
+" LazyVim 默认用 indent，C/C++ 有 treesitter 时会自动切到 treesitter 折叠。
+set foldmethod=indent
 
 function! ToggleAllFold()
     if &foldmethod != 'marker'

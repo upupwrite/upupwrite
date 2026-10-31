@@ -1,30 +1,16 @@
--- ~/.config/nvim/init.lua
--- Neovim 配置入口
+-- bootstrap lazy.nvim, LazyVim and your plugins
+require("config.lazy")
 
--- ========== 基础设置 ==========
-vim.opt.number = true
-vim.opt.relativenumber = true
-vim.opt.tabstop = 4
-vim.opt.shiftwidth = 4
-vim.opt.expandtab = true
-vim.opt.wrap=true
-
--- ========== 加载 Lazy.nvim ==========
-local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
-if not vim.loop.fs_stat(lazypath) then
-  vim.fn.system({
-    "git",
-    "clone",
-    "--filter=blob:none",
-    "https://github.com/folke/lazy.nvim.git",
-    "--branch=stable",
-    lazypath,
-  })
-end
-vim.opt.rtp:prepend(lazypath)
-
--- ========== 加载插件配置 ==========
-require('lazy').setup('plugins')
-
--- ========== 加载其他配置 ==========
+-- 用户自己的 vim 配置（选项、函数、按键）
+-- 先 source 一次，让选项尽早生效
 vim.cmd("source ~/.config/nvim/kemil.vim")
+
+-- 注意：LazyVim 会在 `VeryLazy` 时加载它自己的 keymaps，
+-- 会覆盖 kemil.vim 里的同名按键（如 <C-s>、<leader>E）。
+-- 所以在 VeryLazy 之后再 source 一次，保证 kemil.vim 里的按键最终生效。
+vim.api.nvim_create_autocmd("User", {
+  pattern = "VeryLazy",
+  callback = function()
+    vim.cmd("source ~/.config/nvim/kemil.vim")
+  end,
+})

@@ -1,0 +1,211 @@
+@import "themes/nord.css";
+
+/* ── 深浅三层：用「前景色 + 透明度」做色块，主题换了也自动适配（浅色主题会变成更深的块）
+   shade1 = 最淡（低调的状态模块）
+   shade2 = 中等（信息模块，与 shade1 相邻形成分段）
+   shade3 = 最深（居中时钟，最醒目）                                              */
+@define-color shade1 alpha(@foreground, 0.05);
+@define-color shade2 alpha(@foreground, 0.12);
+@define-color shade3 alpha(@foreground, 0.22); /* 备用：当前没有模块用这一层 */
+@define-color music-tint alpha(@accent, 0.14);
+@define-color cava-tint alpha(@accent, 0.20);
+
+window#waybar {
+  background-color: @background;
+}
+
+* {
+  background-color: transparent;
+  color: @foreground;
+
+  border: none;
+  border-radius: 0;
+  min-height: 0;
+  font-family: 'JetBrainsMono Nerd Font', 'Source Han Sans CN', monospace;
+  font-size: 12px;
+}
+
+.modules-left {
+  margin-left: 6px;
+}
+
+.modules-center {
+  margin: 0 4px;
+}
+
+.modules-right {
+  margin-right: 6px;
+}
+
+/* ── 模块 = 独立色块：块间留 5px 空隙，圆角分隔 ───────────────────────── */
+/* 注意：时钟（#clock）不在其中 —— 它没有独立色块，直接坐在栏底色上 */
+#workspaces,
+#mpris,
+#custom-cava,
+#bluetooth,
+#network,
+#wireplumber,
+#cpu,
+#battery {
+  margin: 2px 2.5px;
+  padding: 0 8px;
+  border-radius: 6px;
+}
+
+/* ── 深浅分配：相邻模块的深浅一定不同，靠明暗差直接读出分区 ─────────────── */
+#workspaces {
+  background-color: @shade2;
+}
+
+#mpris {
+  background-color: @music-tint;
+}
+
+#custom-cava {
+  background-color: @cava-tint;
+}
+
+#bluetooth {
+  background-color: @shade1;
+}
+
+#network {
+  background-color: @shade2;
+}
+
+#wireplumber {
+  background-color: @shade1;
+}
+
+#cpu {
+  background-color: @shade2;
+}
+
+#battery {
+  background-color: @shade1;
+}
+
+/* ── 各模块内部细节 ───────────────────────────────────────────────────── */
+#workspaces button {
+  all: initial;
+  padding: 0 6px;
+  margin: 0 1.5px;
+  min-width: 9px;
+  color: @foreground;
+  background-color: transparent;
+}
+
+#workspaces button.empty {
+  opacity: 0.5;
+}
+
+#workspaces button.active {
+  color: @accent;
+  font-weight: bold;
+}
+
+#workspaces button:hover {
+  background-color: alpha(@foreground, 0.12);
+  border-radius: 4px;
+}
+
+/* 日期：恢复最初样式 —— 不做字体覆盖，沿用栏的基础字体（JetBrainsMono Nerd Font），仅加粗 */
+#clock {
+  font-weight: bold;
+}
+
+/* 音乐：当前播放的曲目 */
+#mpris {
+  font-size: 11px;
+}
+
+#mpris.paused {
+  opacity: 0.65;
+  font-style: italic;
+}
+
+#mpris.stopped {
+  margin: 0;
+  padding: 0;
+  background-color: transparent;
+}
+
+/* 音乐频谱（cava）：方块字符，等宽保证不抖动 */
+#custom-cava {
+  font-size: 11px;
+  color: @accent;
+  min-width: 96px;
+}
+
+/* 音量：图标 + 百分比 */
+#wireplumber {
+  min-width: 46px;
+  padding: 0 6px;
+}
+
+#cpu,
+#battery {
+  min-width: 20px;
+}
+
+#tray {
+  margin-right: 14px;
+}
+
+#bluetooth {
+  margin-right: 2.5px;
+}
+
+#network {
+  margin-right: 2.5px;
+}
+
+#custom-expand-icon {
+  margin-right: 16px;
+}
+
+tooltip {
+  padding: 4px 6px;
+  background-color: @background;
+  border: 1px solid @accent;
+  border-radius: 4px;
+}
+
+.hidden {
+  opacity: 0;
+}
+
+/* ── 状态色（覆盖块底色，优先级靠后 ───────────────────────────────────── */
+/* 电量告警 */
+#battery.warning {
+  color: #f9e2af;
+}
+
+#battery.critical {
+  color: #f38ba8;
+  animation: blink 1s linear infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* 音量静音 / 过响 */
+#wireplumber.muted {
+  opacity: 0.6;
+}
+
+#wireplumber.warning {
+  color: #f9e2af;
+}
+
+#wireplumber.critical {
+  color: #f38ba8;
+}
+
+/* 网络断开 */
+#network.disconnected {
+  color: #f38ba8;
+}

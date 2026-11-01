@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "target_dir": "/home/kemil/.config/nvim",
+  "backup_dir": "/home/kemil/github/upupwrite/nvim",
+  "items": [
+    {
+      "path": ".gitignore",
+      "type": "文件"
+    },
+    {
+      "path": ".neoconf.json",
+      "type": "文件"
+    },
+    {
+      "path": "LICENSE",
+      "type": "文件"
+    },
+    {
+      "path": "QT-CPP-GUIDE.md",
+      "type": "文件"
+    },
+    {
+      "path": "README.md",
+      "type": "文件"
+    },
+    {
+      "path": "init.lua",
+      "type": "文件"
+    },
+    {
+      "path": "kemil.vim",
+      "type": "文件"
+    },
+    {
+      "path": "lazy-lock.json",
+      "type": "文件"
+    },
+    {
+      "path": "lazyvim.json",
+      "type": "文件"
+    },
+    {
+      "path": "lua",
+      "type": "目录"
+    },
+    {
+      "path": "stylua.toml",
+      "type": "文件"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "target_dir": "/home/kemil/.config/waybar",
+  "backup_dir": "/home/kemil/github/upupwrite/waybar",
+  "items": [
+    {
+      "path": "MANUAL.md",
+      "type": "文件"
+    },
+    {
+      "path": "cava.conf",
+      "type": "文件"
+    },
+    {
+      "path": "config.jsonc",
+      "type": "文件"
+    },
+    {
+      "path": "scripts",
+      "type": "目录"
+    },
+    {
+      "path": "style.css",
+      "type": "文件"
+    },
+    {
+      "path": "themes",
+      "type": "目录"
+    }
+  ]
+}

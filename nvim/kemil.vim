@@ -90,7 +90,6 @@ set softtabstop=4        " 设置4个空格为制表符
 set smarttab             " 在行和段开始处使用制表符
 set backspace=2          " 使用回车键正常处理indent,eol,start等
 set sidescroll=10        " 设置向右滚动字符数
-set nofoldenable
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " 代码补全
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -127,8 +126,11 @@ augroup numbertoggle
     autocmd BufLeave,FocusLost,InsertEnter,WinLeave   * if &nu                 | set nornu | endif
 augroup END
 
-noremap  <C-a> <Esc>gg0vG$
-inoremap <C-a> <Esc>gg0vG$
+" Ctrl+A 全选：必须用行选择（V），不能用字符选择（vG$）。
+" 字符选择不包含行尾换行，粘贴行模式的代码时无法完整替换，
+" 甚至会残留空行/旧内容。
+noremap  <C-a> <Esc>ggVG
+inoremap <C-a> <Esc>ggVG
 
 " 保存文件：插入模式下保存后回到普通模式；普通/可视模式只保存
 " 注意：LazyVim 也会映射 <C-s>，因为 kemil.vim 在 VeryLazy 之后再次 source，
@@ -212,30 +214,45 @@ inoremap <Leader>Down :resize -5<CR>
 nnoremap <ESC>u :nohlsearch<CR>
 inoremap <ESC>u <ESC>:nohlsearch<CR>a
 
+" 代码折叠：VSCode 风格的侧边折叠栏（使用 Neovim 内置功能，无需额外插件）
+"   * 左侧会出现可点击的折叠箭头（foldcolumn），鼠标点击即可展开/折叠
+"   * 折叠后显示 “首行内容 … 行数”
+"   * <A-f> 全部折叠/展开，<C-f> 折叠/展开光标处
+"   * zR/zM 展开/折叠全部，za 切换光标处，zo/zc 展开/折叠
+"
 " 不要用 syntax：C/C++/Qt 文件用语法折叠会在打开文件和编辑时大量消耗 CPU。
-" LazyVim 默认用 indent，C/C++ 有 treesitter 时会自动切到 treesitter 折叠。
-set foldmethod=indent
+" LazyVim 默认用 indent；有 treesitter folds 的文件（如 C/C++）会在 FileType
+" 时把窗口级 foldmethod 切成 expr。这里用 setglobal，避免重新 source 本文件时
+" 把已经生效的 treesitter 折叠覆盖回 indent。
+set foldenable
+set foldlevel=99
+setglobal foldmethod=indent
+set foldcolumn=auto:3
+setglobal foldcolumn=auto:3
+
+function! CodeFoldText()
+    let l:first = substitute(getline(v:foldstart), '^\s*', '', '')
+    if l:first ==# '' && v:foldstart < v:foldend
+        let l:first = substitute(getline(v:foldstart + 1), '^\s*', '', '')
+    endif
+    let l:count = v:foldend - v:foldstart + 1
+    return ' ' . l:first . '  … ' . l:count . ' 行'
+endfunction
+
+set foldtext=CodeFoldText()
+setglobal foldtext=CodeFoldText()
 
 function! ToggleAllFold()
-    if &foldmethod != 'marker'
-        " 设置基于{}标记的折叠
-        setlocal foldmethod=marker
-        setlocal foldmarker={,}
-        " 创建所有折叠
-        normal! zM
+    if foldclosed('.') != -1
+        " 当前在折叠中：展开所有
+        normal! zR
     else
-        " 如果已经启用折叠，则切换展开/折叠
-        if foldclosed('.') == -1
-            " 当前在展开状态，折叠所有
-            normal! zM
-        else
-            " 当前在折叠状态，展开所有
-            normal! zR
-        endif
+        " 当前在展开状态：折叠所有
+        normal! zM
     endif
 endfunction
 
-nnoremap <A-f> :call ToggleAllFold()<CR>
+nnoremap <silent> <A-f> :call ToggleAllFold()<CR>
 
 function! ToggleFold()
     " 如果当前行在闭合的折叠中，则打开它
